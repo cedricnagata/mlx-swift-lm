@@ -1210,6 +1210,9 @@ public class Qwen35TextModel: Module, LLMModel, KVCacheDimensionProvider {
         }
     }
 
+    /// The vision tower, which this text model never loads, is not read.
+    public var excludedCheckpointNamespaces: [String] { Qwen35CheckpointPolicy.visionNamespaces }
+
     public func prepareCheckpoint(_ checkpoint: ModelCheckpoint) throws -> ModelCheckpoint {
         var checkpoint = try Qwen35CheckpointPolicy.prepareTarget(
             checkpoint, layout: .text, tiedWordEmbeddings: configuration.tieWordEmbeddings)
@@ -1331,6 +1334,9 @@ public class Qwen35Model: Module, LLMModel, KVCacheDimensionProvider {
     public func prepare() throws {
         try languageModel.prepare()
     }
+
+    /// The vision tower, which this text model never loads, is not read.
+    public var excludedCheckpointNamespaces: [String] { Qwen35CheckpointPolicy.visionNamespaces }
 
     public func prepareCheckpoint(_ checkpoint: ModelCheckpoint) throws -> ModelCheckpoint {
         var checkpoint = try Qwen35CheckpointPolicy.prepareTarget(

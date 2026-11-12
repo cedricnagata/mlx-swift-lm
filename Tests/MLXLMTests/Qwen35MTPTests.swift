@@ -629,6 +629,32 @@ struct Qwen35CheckpointLoadingTests {
         #expect(Set(target.parameters().flattened().map(\.0)) == expectedKeys)
     }
 
+    /// A text model skips the vision tower when reading, rather than reading it and dropping it.
+    @Test
+    func textTargetDoesNotReadVisionTower() throws {
+        let data = try fixtureConfiguration(vision: false, standalone: false, bits: nil)
+        let target = MLXLLM.Qwen35Model(
+            try JSONDecoder().decode(MLXLLM.Qwen35Configuration.self, from: data))
+        var weights = Dictionary(uniqueKeysWithValues: target.parameters().flattened())
+        let expectedKeys = Set(weights.keys)
+        weights["vision_tower.blocks.0.attn.qkv.weight"] = MLXArray.zeros([8, 8])
+        weights["model.visual.patch_embed.proj.weight"] = MLXArray.zeros([8, 8])
+        weights["visual.merger.mlp.0.weight"] = MLXArray.zeros([8, 8])
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
+            UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("model.safetensors")
+        try save(arrays: weights, metadata: ["format": "mlx"], url: url)
+
+        let read = try loadModelCheckpoint(
+            urls: [url], excludedNamespaces: target.excludedCheckpointNamespaces
+        ).weights.keys
+        #expect(Set(read) == expectedKeys)
+        try loadWeights(modelDirectory: directory, model: target)
+        #expect(Set(target.parameters().flattened().map(\.0)) == expectedKeys)
+    }
+
     @Test
     func conversionRoundTripRetainsNormConvention() async throws {
         let fixture = try await makeFixture(vision: false, standalone: false, prefix: "mtp.")

@@ -37,6 +37,12 @@ package struct Qwen35CheckpointPolicy: Sendable {
         ".q_norm.weight", ".k_norm.weight",
     ]
 
+    /// The vision tower's namespaces. A text-only target drops them in ``prepareTarget(_:layout:tiedWordEmbeddings:)``,
+    /// and excluding them from the read as well keeps the loader from reading the tower at all:
+    /// otherwise its tensors are read into memory with the rest and freed only after the load,
+    /// so the load peaks at the whole file (0.6 to 0.9 GB more for Qwen3.5 packs).
+    package static let visionNamespaces = ["vision_tower", "visual", "model.visual"]
+
     /// Target namespaces an embedded head drops on selection, so the loader need not read them.
     package var excludedCheckpointNamespaces: [String] {
         layout == .embedded ? Self.mtpComponent.excludedNamespaces : []
